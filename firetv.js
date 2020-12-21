@@ -569,13 +569,27 @@ function checkIP(cb) {
 }
 
 
+function existsFileWithSymlink(fn) {
+    var _fs
+    try {
+        _fs = _fs || require('fs');
+        var stats = _fs.lstatSync(fn);
+        if (stats.isSymbolicLink()) {
+            var linkedFile = _fs.realpathSync(fn);
+            return soef.existFile(linkedFile);
+        }
+    } catch(e) {
+    }
+    return false;
+}
+
 function checkPATH() {
     var fn, ar = process.env.PATH.split(path.delimiter);
     var exe = isWin ? 'adb.exe' : 'adb';
     ar.find(function(v) {
         if (v.toLowerCase().indexOf('adb') >= 0) {
             var _fn = path.join(v, exe);
-            if (soef.existFile(_fn)) {
+            if (soef.existFile(_fn) || soef.existsFileWithSymlink(_fn)) {
                 fn = _fn;
                 return true;
             }
@@ -588,7 +602,7 @@ function checkPATH() {
 var defaultMinimalABAndFastboot = 'C:/Program Files (x86)/Minimal ADB and Fastboot/adb.exe';
 function normalizeConfig() {
     var oldAdbPath = adapter.config.adbPath;
-    if (!soef.existFile(adapter.config.adbPath)) {
+    if (!soef.existFile(adapter.config.adbPath) && !existsFileWithSymlink(adapter.config.adbPath)) {
         if (isWin && adapter.config.adbPath && soef.existFile(adapter.config.adbPath + '.exe')) {
             adapter.config.adbPath += '.exe';
         } else {
